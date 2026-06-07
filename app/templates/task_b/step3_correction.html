@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_steps %}
+{% block title %}数据校验与AI修正 — 穿透式融资成本核算系统{% endblock %}
+
+{% block content %}
+{% set steps = [
+    {'index': 1, 'label': '上传文件'},
+    {'index': 2, 'label': '选择页面'},
+    {'index': 3, 'label': 'AI 修正'},
+    {'index': 4, 'label': '预览确认'},
+    {'index': 5, 'label': '分析报告'}
+] %}
+{{ render_steps(steps, 3) }}
+
+<div class="page-header" style="padding-top:0;margin-bottom:var(--space-xl)">
+    <h2>数据校验与 AI 自动修正</h2>
+    <p class="subtitle">右侧为原始PDF页面截图，左侧为识别数据（可编辑），对比确认后进行修正</p>
+</div>
+
+{% set issues = validation.get("issues", []) %}
+{% set summary = validation.get("summary", {}) %}
+{% set ai_corrections = ai_corrections or {} %}
+{% set changes = ai_corrections.get("changes", []) %}
+
+<!-- 校验摘要 -->
+<div class="stat-group mb-lg">
+    <div class="stat-card {% if summary.high > 0 %}card-gold{% endif %}">
+        <div class="stat-number" style="color:{{ 'var(--red)' if summary.high > 0 else 'var(--green)' }}">{{ summary.get('high', 0) }}</div>
+        <div class="stat-label">严重问题</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number" style="color:var(--orange)">{{ summary.get('medium', 0) }}</div>
+        <div class="stat-label">一般问题</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number" style="color:var(--accent)">{{ changes|length }}</div>
+        <div class="stat-label">AI 自动修正</div>
+    </div>
+</div>
+
+{% if issues %}
+<div class="card mb-lg">
+    <div class="card-header">🔍 勾稽校验问题（{{ summary.total }} 项）</div>
+    <div class="card-body" style="padding:var(--space-md)">
+        <div style="max-height:200px;overflow-y:auto">
+            {% for issue in issues %}
+            <div class="text-small" style="padding:4px 0;border-bottom:1px solid var(--border-color)">
+                <span class="tag {% if issue.severity == 'high' %}tag-red{% elif issue.severity == 'medium' %}tag-gold{% else %}tag-blue{% endif %}" style="font-size:0.7rem;margin-right:6px">{{ issue.severity }}</span>
+                <span class="text-muted">{{ issue.year }}</span>
+                <span>{{ issue.desc[:100] }}{{ '...' if issue.desc|length > 100 }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+.stmt-image-panel {
+    display: flex;
+    gap: var(--space-md);
+}
+.stmt-table-wrap {
+    flex: 1;
+    min-width: 0;
+}
+.stmt-image-wrap {
+    width: 520px;
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--bg-elevated);
+}
+.stmt-image-wrap img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+.stmt-image-wrap .image-header {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-card);
+}
+@media (max-width: 900px) {
+    .stmt-image-panel { flex-direction: column; }
+    .stmt-image-wrap { width: 100%; max-width: 500px; }
+}
+</style>
+
+<!-- 完整三表编辑区 + 原图对比 -->
+<form id="correctionForm">
+<input type="hidden" name="session_id" value="{{ sid }}">
+{% set stmt_info = [
+    ('资产负债表', '资产负债表', 'balance_sheet'),
+    ('利润表', '利润表', 'income_stmt'),
+    ('现金流量表', '现金流量表', 'cash_flow')
+] %}
+
+{% for stmt_label, stmt_key, stmt_sel_key in stmt_info %}
+<div class="card mb-lg">
+    <div class="card-header" style="display:flex;align-items:center;gap:var(--space-sm)">
+        <span>{% if stmt_key == '资产负债表' %}📋{% elif stmt_key == '利润表' %}📈{% else %}💰{% endif %} {{ stmt_label }}</span>
+        <span class="tag tag-green">可编辑</span>
+    </div>
+    <div class="card-body" style="padding:var(--space-md)">
+        {% set _rows_ns = namespace(has_data=false) %}
+        {% for year in years %}
+            {% set subjects = full_subjects.get(year, {}).get(stmt_key, []) %}
+            {% if subjects|length > 0 %}{% set _rows_ns.has_data = true %}{% endif %}
+        {% endfor %}
+
+        {% if _rows_ns.has_data %}
+        <div class="stmt-image-panel">
+            <!-- 左侧：可编辑表格 -->
+            <div class="stmt-table-wrap">
+                <div class="table-container" style="max-height:500px;overflow-y:auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:28%;position:sticky;top:0;z-index:2">科目名称</th>
+                                {% for year in years %}
+                                <th style="width:24%;position:sticky;top:0;z-index:2">{{ year }} 年</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set _all_names = namespace(items=[], seen=[]) %}
+                            {% for year in years %}
+                                {% for item in full_subjects.get(year, {}).get(stmt_key, []) %}
+                                    {% set nm = item.get("科目", "") %}
+                                    {% if nm and nm not in _all_names.seen %}
+                                        {% set _all_names.seen = _all_names.seen + [nm] %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                            {% for nm in _all_names.seen %}
+                            <tr>
+                                <td style="font-weight:500">{{ nm }}</td>
+                                {% for year in years %}
+                                    {% set vals = full_subjects.get(year, {}).get(stmt_key, []) | selectattr("科目", "equalto", nm) | list %}
+                                    {% set _orig_val = namespace(v=None) %}
+                                    {% if vals|length > 0 %}
+                                        {% if stmt_key == '资产负债表' %}
+                                            {% set _orig_val.v = vals[0].get("期末") if vals[0].get("期末") is not none else vals[0].get("期初") %}
+                                        {% else %}
+                                            {% set _orig_val.v = vals[0].get("本期") if vals[0].get("本期") is not none else vals[0].get("上期") %}
+                                        {% endif %}
+                                    {% endif %}
+                                    {% set orig_val = _orig_val.v %}
+                                    {% set _corr = namespace(found=None) %}
+                                    {% for chg in changes %}
+                                        {% if chg.year == year and chg.key == nm %}{% set _corr.found = chg %}{% endif %}
+                                    {% endfor %}
+                                    {% if _corr.found %}
+                                    <td style="background:rgba(239,68,68,0.08);border-bottom:1px solid rgba(239,68,68,0.2)">
+                                        <div style="font-size:0.75rem;color:var(--red);margin-bottom:2px">
+                                            {% if _corr.found.from is number %}{{ '{:,.2f}'.format(_corr.found.from) }}{% else %}{{ _corr.found.from }}{% endif %}
+                                        </div>
+                                        <input type="text" class="form-control form-control-sm" name="corr_{{ year }}_{{ nm }}"
+                                               value="{% if _corr.found.to is number %}{{ '{:,.2f}'.format(_corr.found.to) }}{% else %}{{ _corr.found.to }}{% endif %}"
+                                               style="font-weight:600;color:var(--green);border-color:rgba(16,185,129,0.3);max-width:150px">
+                                    </td>
+                                    {% elif orig_val is not none and orig_val != '—' and orig_val != '' %}
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" name="corr_{{ year }}_{{ nm }}"
+                                               value="{% if orig_val is number %}{{ '{:,.2f}'.format(orig_val) }}{% else %}{{ orig_val }}{% endif %}"
+                                               style="max-width:150px">
+                                    </td>
+                                    {% else %}
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" name="corr_{{ year }}_{{ nm }}"
+                                               placeholder="空" style="max-width:150px;color:var(--text-muted)">
+                                    </td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- 右侧：原始 PDF 图片，带年份切换 -->
+            <div class="stmt-image-wrap">
+                <div style="display:flex;align-items:center;gap:var(--space-sm);padding:var(--space-sm) var(--space-md);border-bottom:1px solid var(--border-color);background:var(--bg-card)">
+                    <span style="font-size:0.8rem;font-weight:600">原图：</span>
+                    {% for year in years %}
+                    {% set sel_pages = page_selection.get(year, {}).get(stmt_sel_key, []) %}
+                    {% if sel_pages|length > 0 %}
+                    <button class="btn btn-sm {{ 'btn-primary' if loop.first else 'btn-ghost' }}" style="font-size:0.75rem;padding:2px 10px"
+                            onclick="switchImage(this, '{{ stmt_key }}_{{ year }}')">{{ year }}</button>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% set _img_shown = namespace(shown=False) %}
+                {% for year in years %}
+                    {% set sel_pages = page_selection.get(year, {}).get(stmt_sel_key, []) %}
+                    {% if sel_pages|length > 0 %}
+                        <div class="stmt-image-year-group" id="img_grp_{{ stmt_key }}_{{ year }}" style="display:{{ 'block' if not _img_shown.shown else 'none' }}">
+                            {% set _img_shown.shown = True %}
+                            {% for p in sel_pages %}
+                            <div>
+                                <div style="padding:var(--space-sm) var(--space-md);font-size:0.75rem;color:var(--text-muted)">第{{ p+1 }}页</div>
+                                <img src="/api/session/{{ sid }}/page-image/{{ year }}/{{ p }}"
+                                     alt="{{ year }}年 第{{ p+1 }}页"
+                                     loading="lazy"
+                                     onclick="window.open(this.src, '_blank')"
+                                     style="width:100%;height:auto;display:block;cursor:pointer">
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center" style="padding:var(--space-lg);color:var(--text-muted)">
+            {% if stmt_key == '现金流量表' %}<span>（无数据）</span>{% else %}暂无数据{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+<!-- 操作 -->
+<div class="flex justify-between items-center mb-xl">
+    <a href="/task-b" class="btn btn-ghost">← 重新上传</a>
+    <div class="flex gap-md">
+        <button type="button" class="btn btn-secondary" onclick="skipCorrections()">忽略修正，继续 →</button>
+        <button type="button" class="btn btn-primary" onclick="submitCorrections()">✅ 确认修正，继续 →</button>
+    </div>
+</div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchImage(btn, id) {
+    // toggle active button
+    var parent = btn.parentElement;
+    parent.querySelectorAll('button').forEach(function(b) { b.className = 'btn btn-sm btn-ghost'; b.style.cssText = 'font-size:0.75rem;padding:2px 10px'; });
+    btn.className = 'btn btn-sm btn-primary';
+    btn.style.cssText = 'font-size:0.75rem;padding:2px 10px';
+    // show selected year group, hide others
+    var wrap = parent.closest('.stmt-image-wrap');
+    if (wrap) {
+        wrap.querySelectorAll('.stmt-image-year-group').forEach(function(el) { el.style.display = 'none'; });
+        var target = document.getElementById('img_grp_' + id);
+        if (target) target.style.display = 'block';
+    }
+}
+
+function submitCorrections() {
+    var btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '提交中...';
+    var sid = '{{ sid }}';
+
+    // 收集所有修正值
+    var corrections = {};
+    var inputs = document.querySelectorAll('#correctionForm input[name^="corr_"]');
+    inputs.forEach(function(inp) {
+        var name = inp.name;
+        var parts = name.split('_');
+        // corr_{year}_{key}
+        var year = parts[1];
+        var key = parts.slice(2).join('_');
+        var val = inp.value.trim();
+        if (val) {
+            if (!corrections[year]) corrections[year] = {};
+            corrections[year][key] = parseFloat(val) || val;
+        }
+    });
+
+    fetch('/api/task-b/confirm', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ session_id: sid, corrections: corrections })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.redirect) { window.location.href = data.redirect; }
+        else { alert('操作失败: ' + JSON.stringify(data)); btn.disabled = false; btn.innerHTML = '✅ 确认修正，继续 →'; }
+    })
+    .catch(function(e) { alert('网络错误: ' + e); btn.disabled = false; btn.innerHTML = '✅ 确认修正，继续 →'; });
+}
+
+function skipCorrections() {
+    showLoading('正在加载原始数据...', '');
+    fetch('/api/task-b/skip-corrections/' + ('{{ sid }}'), { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.redirect) window.location.href = data.redirect;
+        else window.location.href = '/task-b/preview/' + ('{{ sid }}');
+    })
+    .catch(function() { window.location.href = '/task-b/preview/' + ('{{ sid }}'); });
+}
+</script>
+{% endblock %}

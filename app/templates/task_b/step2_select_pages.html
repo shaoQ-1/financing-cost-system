@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_steps %}
+{% block title %}选择三表页面 — 穿透式融资成本核算系统{% endblock %}
+
+{% block content %}
+{% set steps = [
+    {'index': 1, 'label': '上传文件'},
+    {'index': 2, 'label': '选择页面'},
+    {'index': 3, 'label': '数据校验'},
+    {'index': 4, 'label': '预览确认'},
+    {'index': 5, 'label': '分析报告'}
+] %}
+{{ render_steps(steps, 2) }}
+
+<div class="flex justify-between items-center mb-lg" style="flex-wrap:wrap;gap:var(--space-md)">
+    <div>
+        <h2 style="margin:0">选择三表页面</h2>
+        <p class="text-small text-muted" style="margin:var(--space-sm) 0 0">
+            点击 PDF 页面缩略图，将其分配到对应的报表类别
+        </p>
+    </div>
+    <div class="flex items-center gap-sm" id="key-section">
+        <label class="form-label" for="apiKey" style="margin:0;white-space:nowrap">DeepSeek Key</label>
+        <input type="text" id="apiKey" class="form-control form-control-sm"
+               placeholder="sk-..." style="width:240px">
+        <small class="text-small text-muted" style="display:none" id="key-status">✅ 已配置</small>
+    </div>
+</div>
+
+<!-- 选择摘要 -->
+<div class="card mb-lg" style="border-color:rgba(240,180,41,0.2);background:rgba(240,180,41,0.03)" id="summary-card">
+    <div class="card-body" style="padding:var(--space-md)">
+        <div class="flex items-center gap-lg" style="flex-wrap:wrap">
+            <span class="text-small text-muted">已分配：</span>
+            <span class="tag tag-green" id="count-bs">资产负债表 0 页</span>
+            <span class="tag tag-blue" id="count-is">利润表 0 页</span>
+            <span class="tag" id="count-cf" style="background:rgba(245,158,11,0.08);color:#fcd34d;border:1px solid rgba(245,158,11,0.2)">现金流量表 0 页</span>
+            <span style="font-size:0.85rem;color:var(--text-muted)" id="total-count">合计 0 / 3 页</span>
+            <span style="font-size:0.8rem;color:var(--accent);font-weight:600" id="ready-status">请分配三张报表各一页</span>
+        </div>
+    </div>
+</div>
+
+<div class="year-tabs">
+    {% for year in years %}
+    <button class="year-tab {{ 'active' if loop.first }}" data-year="{{ year }}">{{ year }} 年</button>
+    {% endfor %}
+</div>
+
+{% for year in years %}
+<div class="year-pages" id="pages-{{ year }}" {{ 'style=display:none' if not loop.first }}>
+    <!-- Drop zones for statements -->
+    <div class="grid-3 mb-lg">
+        <div>
+            <div class="flex items-center gap-sm mb-sm">
+                <span class="tag tag-green stmt-tag" data-stmt="balance_sheet" style="cursor:pointer">资产负债表</span>
+            </div>
+            <div class="dropzone" data-year="{{ year }}" data-stmt="balance_sheet">
+                <div class="dropzone-placeholder">点击下方页面移入此区</div>
+            </div>
+        </div>
+        <div>
+            <div class="flex items-center gap-sm mb-sm">
+                <span class="tag tag-blue stmt-tag" data-stmt="income_stmt" style="cursor:pointer">利润表</span>
+            </div>
+            <div class="dropzone" data-year="{{ year }}" data-stmt="income_stmt">
+                <div class="dropzone-placeholder">点击下方页面移入此区</div>
+            </div>
+        </div>
+        <div>
+            <div class="flex items-center gap-sm mb-sm">
+                <span class="tag stmt-tag" data-stmt="cash_flow" style="cursor:pointer;background:rgba(245,158,11,0.08);color:#fcd34d;border:1px solid rgba(245,158,11,0.2)">现金流量表</span>
+            </div>
+            <div class="dropzone" data-year="{{ year }}" data-stmt="cash_flow">
+                <div class="dropzone-placeholder">点击下方页面移入此区</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="moveSelectedToActive()">
+            <span>全部页面</span>
+            <small class="text-muted">点击分配至上方对应区域，再次点击移回｜点击此处批量移入当前选中报表</small>
+        </div>
+        <div class="card-body">
+            <div class="thumbnails" data-year="{{ year }}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:var(--space-sm)">
+                {% for p in pages_by_year.get(year, []) %}
+                <div class="page-thumbnail" data-page="{{ p.page_num }}" data-year="{{ year }}"
+                     data-img="{{ p.base64 }}">
+                    <img src="data:image/jpeg;base64,{{ p.base64 }}" alt="第{{ p.page_num+1 }}页" loading="lazy"
+                         data-session="{{ sid }}" data-year="{{ year }}" data-page="{{ p.page_num }}">
+                    <div class="text-center text-small" style="padding:4px 0;color:var(--text-muted)">第{{ p.page_num+1 }}页</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<div class="flex justify-between mt-xl" style="margin-bottom:var(--space-2xl)">
+    <a href="/task-b" class="btn btn-ghost">← 重新上传</a>
+    <button class="btn btn-primary" onclick="startExtraction()">
+        确认选择，开始 AI 提取 →
+    </button>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content" style="max-width:520px">
+        <div class="loading-spinner"></div>
+        <div class="loading-title">DeepSeek 正在提取财务数据</div>
+        <div class="loading-subtitle" id="loading-subtitle">页面图像正在发送至 AI 处理...</div>
+        <div id="progress-log" style="margin-top:16px;text-align:left;max-height:200px;overflow-y:auto;background:rgba(0,0,0,0.3);border-radius:8px;padding:10px 14px;font-size:0.78rem;font-family:var(--font-mono);line-height:1.7;color:var(--text-secondary)"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    /* ── Year tab switching ── */
+    document.querySelectorAll('.year-tab').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.year-pages').forEach(function(d) { d.style.display = 'none'; });
+            document.getElementById('pages-' + this.dataset.year).style.display = 'block';
+            document.querySelectorAll('.year-tab').forEach(function(b) { b.classList.remove('active'); });
+            this.classList.add('active');
+        });
+    });
+
+    /* ── Hover preview: API 获取 800px 清晰预览 ── */
+    var previewEl = null;
+    var previewCache = {};
+    document.querySelectorAll('.page-thumbnail').forEach(function(thumb) {
+        var timer = null;
+        thumb.addEventListener('mouseenter', function() {
+            var img = this.querySelector('img');
+            if (!img) return;
+
+            var sid = img.dataset.session;
+            var year = img.dataset.year;
+            var page = img.dataset.page;
+            var cacheKey = year + '_' + page;
+
+            timer = setTimeout(function() {
+                if (!previewEl) {
+                    previewEl = document.createElement('div');
+                    previewEl.style.cssText = 'position:fixed;z-index:9999;border:2px solid var(--accent);border-radius:8px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,0.6);background:var(--bg-surface);pointer-events:none;max-width:500px;max-height:700px';
+                    // 暂用缩略图
+                    previewEl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">加载中...</div>';
+                    document.body.appendChild(previewEl);
+                }
+                previewEl.style.display = 'block';
+
+                if (previewCache[cacheKey]) {
+                    previewEl.innerHTML = previewCache[cacheKey];
+                } else {
+                    fetch('/api/session/preview', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({session_id: sid, year: year, page: page})
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.base64) {
+                            var html = '<img src="data:image/jpeg;base64,' + data.base64 + '" style="width:100%;height:auto;display:block">';
+                            previewCache[cacheKey] = html;
+                            if (previewEl.style.display !== 'none') {
+                                previewEl.innerHTML = html;
+                            }
+                        }
+                    })
+                    .catch(function() {});
+                }
+            }, 300);
+        });
+
+        thumb.addEventListener('mouseleave', function() {
+            clearTimeout(timer);
+            if (previewEl) previewEl.style.display = 'none';
+        });
+
+        thumb.addEventListener('mousemove', function(e) {
+            if (!previewEl || previewEl.style.display === 'none') return;
+            var x = e.clientX + 20;
+            var y = e.clientY + 10;
+            if (x + 500 > window.innerWidth) x = e.clientX - 520;
+            if (y + 350 > window.innerHeight) y = window.innerHeight - 360;
+            previewEl.style.left = x + 'px';
+            previewEl.style.top = y + 'px';
+        });
+    });
+
+    /* ── 当前选中的报表类别（点表头切换） ── */
+    var activeStmt = {};
+
+    function updateStmtTagHighlights(year) {
+        document.querySelectorAll('.year-pages[id="pages-' + year + '"] .stmt-tag').forEach(function(el) {
+            el.style.outline = 'none';
+            el.style.outlineOffset = '0';
+            el.style.boxShadow = 'none';
+        });
+        var sel = activeStmt[year] || 'balance_sheet';
+        document.querySelectorAll('.year-pages[id="pages-' + year + '"] .stmt-tag[data-stmt="' + sel + '"]').forEach(function(el) {
+            el.style.outline = '2px solid var(--accent)';
+            el.style.outlineOffset = '2px';
+        });
+    }
+
+    // 点击表头切换
+    document.querySelectorAll('.stmt-tag').forEach(function(tag) {
+        tag.addEventListener('click', function() {
+            var stmt = this.dataset.stmt;
+            var year = this.closest('.year-pages').id.replace('pages-', '');
+            activeStmt[year] = stmt;
+            updateStmtTagHighlights(year);
+        });
+    });
+
+    // 点击 dropzone 虚框也触发切换
+    document.querySelectorAll('.dropzone').forEach(function(dz) {
+        dz.addEventListener('click', function() {
+            var year = this.closest('.year-pages').id.replace('pages-', '');
+            activeStmt[year] = this.dataset.stmt;
+            updateStmtTagHighlights(year);
+        });
+    });
+
+    /* ── 批量移入：点击全部页面标题 → 把所有未分配的缩略图放入当前选中报表 ── */
+    function moveSelectedToActive() {
+        var year = document.querySelector('.year-pages[style*="display:block"]')?.id.replace('pages-', '')
+               || document.querySelector('.year-pages:not([style*="display:none"])')?.id.replace('pages-', '');
+        if (!year) {
+            year = document.querySelector('.year-pages')?.id.replace('pages-', '');
+            if (!year) return;
+        }
+        var targetStmt = activeStmt[year] || 'balance_sheet';
+        var target = document.querySelector('.dropzone[data-year="' + year + '"][data-stmt="' + targetStmt + '"]');
+        if (!target) return;
+
+        // 检查目标是不是空的或有内容，多页都放进去
+        var gallery = document.querySelector('.thumbnails[data-year="' + year + '"]');
+        if (!gallery) return;
+
+        var thumbs = gallery.querySelectorAll('.page-thumbnail');
+        thumbs.forEach(function(thumb) {
+            thumb.classList.add('selected');
+            target.appendChild(thumb);
+            var ph = target.querySelector('.dropzone-placeholder');
+            if (ph) ph.style.display = 'none';
+        });
+        updateDropzoneStates(year);
+        updateSummary();
+    }
+
+    /* ── Thumbnail click: 点表头指定去向，点页面放入 ── */
+    document.querySelectorAll('.page-thumbnail').forEach(function(thumb) {
+        thumb.addEventListener('click', function() {
+            const year = this.dataset.year || this.closest('.year-pages')?.id.replace('pages-', '');
+            if (!year) return;
+
+            // 已在 dropzone → 移回并按页码插入原位
+            const dz = this.closest('.dropzone');
+            if (dz) {
+                const gallery = document.querySelector('.thumbnails[data-year="' + year + '"]');
+                if (gallery) {
+                    dz.removeChild(this);
+                    this.classList.remove('selected');
+                    var pageNum = parseInt(this.dataset.page);
+                    var inserted = false;
+                    var thumbs = gallery.querySelectorAll('.page-thumbnail');
+                    for (var k = 0; k < thumbs.length; k++) {
+                        if (parseInt(thumbs[k].dataset.page) > pageNum) {
+                            gallery.insertBefore(this, thumbs[k]);
+                            inserted = true;
+                            break;
+                        }
+                    }
+                    if (!inserted) gallery.appendChild(this);
+                    if (dz.querySelectorAll('.page-thumbnail').length === 0) {
+                        var ph = dz.querySelector('.dropzone-placeholder');
+                        if (ph) ph.style.display = '';
+                    }
+                    updateDropzoneStates(year);
+                    updateSummary();
+                }
+                return;
+            }
+
+            // 不在 dropzone → 放入当前选中的报表类别
+            var targetStmt = activeStmt[year] || 'balance_sheet';
+            var target = document.querySelector(
+                '.dropzone[data-year="' + year + '"][data-stmt="' + targetStmt + '"]'
+            );
+            if (target) {
+                this.parentElement.removeChild(this);
+                this.classList.add('selected');
+                target.appendChild(this);
+                var ph = target.querySelector('.dropzone-placeholder');
+                if (ph) ph.style.display = 'none';
+                updateDropzoneStates(year);
+                updateSummary();
+            }
+        });
+    });
+
+    /* ── Update summary bar ── */
+    function updateSummary() {
+        var bs = 0, is = 0, cf = 0;
+        document.querySelectorAll('.dropzone').forEach(function(dz) {
+            var c = dz.querySelectorAll('.page-thumbnail').length;
+            if (dz.dataset.stmt === 'balance_sheet') bs = c;
+            else if (dz.dataset.stmt === 'income_stmt') is = c;
+            else if (dz.dataset.stmt === 'cash_flow') cf = c;
+        });
+        var total = bs + is + cf;
+        document.getElementById('count-bs').textContent = '资产负债表 ' + bs + ' 页';
+        document.getElementById('count-is').textContent = '利润表 ' + is + ' 页';
+        document.getElementById('count-cf').textContent = '现金流量表 ' + cf + ' 页';
+        document.getElementById('total-count').textContent = '合计 ' + total + ' / 3 页';
+        var status = document.getElementById('ready-status');
+        if (bs >= 1 && is >= 1 && cf >= 1) {
+            status.textContent = '✅ 三表已齐全，可以开始提取';
+            status.style.color = 'var(--green)';
+        } else {
+            status.textContent = '请分配三张报表各至少一页';
+            status.style.color = 'var(--accent)';
+        }
+    }
+
+    /* ── Update dropzone visual state ── */
+    function updateDropzoneStates(year) {
+        document.querySelectorAll('.dropzone[data-year="' + year + '"]').forEach(function(dz) {
+            const hasContent = dz.querySelector('.page-thumbnail');
+            dz.classList.toggle('has-content', !!hasContent);
+        });
+    }
+
+    /* Initialize dropzone states */
+    document.querySelectorAll('.year-pages').forEach(function(yp) {
+        const year = yp.id.replace('pages-', '');
+        updateDropzoneStates(year);
+        // 默认选中资产负债表
+        activeStmt[year] = 'balance_sheet';
+        updateStmtTagHighlights(year);
+    });
+
+    // 页面加载时检查是否已配置 DeepSeek Key，有则隐藏输入框
+    // 兼容旧服务器没有 /api/session/config 的情况
+    try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/api/session/config', true);
+        xhr.onload = function() {
+            try {
+                var cfg = JSON.parse(xhr.responseText);
+                if (cfg.deepseek_api_key) {
+                    document.getElementById('key-section').style.display = 'none';
+                }
+            } catch(e) {}
+        };
+        xhr.onerror = function() {};
+        xhr.send();
+    } catch(e) {}
+
+    window.getSelections = function() {
+        var sel = {};
+        document.querySelectorAll('.year-pages').forEach(function(div) {
+            var year = div.id.replace('pages-', '');
+            sel[year] = {};
+            div.querySelectorAll('.dropzone').forEach(function(dz) {
+                var stmt = dz.dataset.stmt;
+                var pages = [];
+                dz.querySelectorAll('.page-thumbnail').forEach(function(el) {
+                    pages.push(parseInt(el.dataset.page));
+                });
+                if (pages.length > 0) sel[year][stmt] = pages;
+            });
+        });
+        for (var y in sel) { if (Object.keys(sel[y]).length === 0) delete sel[y]; }
+        return sel;
+    };
+
+    window.startExtraction = function() {
+        var sel = getSelections();
+        if (Object.keys(sel).length === 0) { alert('请至少选择一个年份的报表页面'); return; }
+        var totalPages = 0;
+        for (var y in sel) { for (var s in sel[y]) { totalPages += sel[y][s].length; } }
+        if (totalPages < 3) { alert('请至少选择 3 页（三张表各一页）'); return; }
+
+        var apiKey = document.getElementById('apiKey').value.trim();
+        if (!apiKey) {
+            var defaultKey = document.getElementById('key-section').style.display === 'none'
+                ? '{{ config.DEEPSEEK_API_KEY|default("") }}' : '';
+            if (defaultKey) {
+                startExtractionWithKey(defaultKey, sel);
+            } else {
+                alert('请输入 DeepSeek API Key');
+            }
+            return;
+        }
+        startExtractionWithKey(apiKey, sel);
+    };
+
+    function startExtractionWithKey(apiKey, sel) {
+        document.querySelector('.btn-primary').disabled = true;
+        document.querySelector('.btn-primary').textContent = '提取中...';
+        document.getElementById('loadingOverlay').classList.add('show');
+        document.getElementById('progress-log').textContent = '';
+
+        function appendLog(msg) {
+            var log = document.getElementById('progress-log');
+            var line = document.createElement('div');
+            line.textContent = '> ' + msg;
+            log.appendChild(line);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        appendLog('发送页面选择至服务器...');
+
+        fetch('/api/task-b/extract', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                session_id: '{{ sid }}',
+                page_selection: sel,
+                api_key: apiKey,
+                extract_mode: 'ai'
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.status === 'extracting') {
+                appendLog('服务器开始处理...');
+                pollExtract('{{ sid }}', appendLog);
+            } else {
+                document.getElementById('loadingOverlay').classList.remove('show');
+                alert('提取启动失败');
+            }
+        })
+        .catch(function() {
+            document.getElementById('loadingOverlay').classList.remove('show');
+            alert('网络错误');
+        });
+    };
+
+    function pollExtract(sid, appendLog) {
+        var interval = setInterval(function() {
+            fetch('/api/task-b/extract-status/' + sid)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var statusLog = data.log || '';
+                if (statusLog) { appendLog(statusLog); }
+                if (data.status === 'done') {
+                    clearInterval(interval);
+                    appendLog('提取完成！');
+                    setTimeout(function() {
+                        document.getElementById('loadingOverlay').classList.remove('show');
+                        window.location.href = data.redirect;
+                    }, 500);
+                } else if (data.status === 'error') {
+                    clearInterval(interval);
+                    appendLog('✗ 提取失败: ' + (data.message || '未知错误'));
+                    setTimeout(function() {
+                        document.getElementById('loadingOverlay').classList.remove('show');
+                        document.querySelector('.btn-primary').disabled = false;
+                        document.querySelector('.btn-primary').textContent = '确认选择，开始 AI 提取 →';
+                    }, 2000);
+                } else {
+                    appendLog('处理中，请稍候...');
+                }
+            });
+        }, 2000);
+    }
+})();
+</script>
+{% endblock %}

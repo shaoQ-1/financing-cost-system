@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_steps %}
+{% block title %}融资成本测算 — 穿透式融资成本核算系统{% endblock %}
+
+{% block content %}
+{% set steps = [
+    {'index': 1, 'label': '上传明细表'},
+    {'index': 2, 'label': '配置利率'},
+    {'index': 3, 'label': '计算中'},
+    {'index': 4, 'label': '结果报告'}
+] %}
+{{ render_steps(steps, 1) }}
+
+<div class="page-header" style="padding-top:0;margin-bottom:var(--space-xl)">
+    <h1>融资成本测算</h1>
+    <p class="subtitle">上传金融负债明细表，配置利率参数，以四种口径测算企业真实融资成本</p>
+</div>
+
+<div class="grid-2" style="max-width:900px;margin:0 auto;gap:var(--space-2xl)">
+    <!-- Left: Upload form -->
+    <div class="card card-gold">
+        <div class="card-body" style="padding:var(--space-xl)">
+            <div style="display:flex;align-items:center;gap:var(--space-md);margin-bottom:var(--space-lg)">
+                <span style="font-size:1.8rem;color:var(--accent)">📋</span>
+                <div>
+                    <h4 style="margin:0">上传明细表</h4>
+                    <small class="text-muted">支持 Excel 或 CSV 格式</small>
+                </div>
+            </div>
+
+            <form id="liabilityForm" hx-post="/api/task-a/upload" hx-target="#result" hx-encoding="multipart/form-data">
+                <div class="form-group">
+                    <label class="form-label">金融负债明细表</label>
+                    <input type="file" name="liability_file" accept=".xlsx,.xls,.csv" class="form-control" required>
+                    <div class="form-text">列名需包含：融资品种、借款余额、还款日期（可选）</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Task B Session ID <small class="text-muted">（可选）</small></label>
+                    <input type="text" name="session_id" class="form-control"
+                           placeholder="留空自动创建新会话"
+                           value="{{ request.args.get('sid', '') }}">
+                    <div class="form-text">如果已完成三年财务分析，输入 Session ID 以复用财务数据</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    上传并配置利率 →
+                </button>
+            </form>
+            <div id="result" class="mt-md"></div>
+        </div>
+    </div>
+
+    <!-- Right: Info panel -->
+    <div class="card">
+        <div class="card-body" style="padding:var(--space-xl)">
+            <div style="display:flex;align-items:center;gap:var(--space-md);margin-bottom:var(--space-lg)">
+                <span style="font-size:1.8rem;color:var(--blue)">ℹ</span>
+                <h4 style="margin:0">四种测算口径</h4>
+            </div>
+
+            <div style="margin-bottom:var(--space-md)">
+                <h6 style="color:var(--accent);margin-bottom:var(--space-xs)">① 邦得法（五步勾稽）</h6>
+                <p class="text-small text-muted">不依赖明细表，从审计报告还原真实利息 ÷ 平均有息负债</p>
+            </div>
+            <div class="divider"></div>
+            <div style="margin-bottom:var(--space-md)">
+                <h6 style="color:var(--text-secondary);margin-bottom:var(--space-xs)">② 费用化利息法</h6>
+                <p class="text-small text-muted">利润表利息支出 ÷ 平均有息负债，不含资本化部分</p>
+            </div>
+            <div class="divider"></div>
+            <div style="margin-bottom:var(--space-md)">
+                <h6 style="color:var(--blue);margin-bottom:var(--space-xs)">③ 正算加权法</h6>
+                <p class="text-small text-muted">∑(各类余额×利率) ÷ 总有息负债，需明细表</p>
+            </div>
+            <div class="divider"></div>
+            <div style="margin-bottom:var(--space-md)">
+                <h6 style="color:var(--red);margin-bottom:var(--space-xs)">④ 极限倒挤非标法</h6>
+                <p class="text-small text-muted">(真实利息 − 银行利息 − 债券利息) ÷ 非标本金</p>
+            </div>
+
+            {% if not request.args.get('sid') %}
+            <div class="alert alert-info" style="margin-top:var(--space-lg)">
+                <strong>💡 提示：</strong>如果尚未完成三年财务分析，建议先
+                <a href="/task-b" class="alert-link">上传审计报告</a>，
+                否则部分成本口径（邦得法）无法计算。
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.body.addEventListener('htmx:afterRequest', function(evt) {
+    if (evt.detail.target.id === 'result') {
+        try {
+            var data = JSON.parse(evt.detail.xhr.responseText);
+            if (data.redirect) { window.location.href = data.redirect; }
+            if (data.error) { alert('上传失败: ' + data.error); }
+        } catch(e) {}
+    }
+});
+</script>
+{% endblock %}

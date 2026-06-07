@@ -1,0 +1,21 @@
+{% macro render_steps(steps, current) %}
+<div class="steps progress-{{ steps|length }}">
+    {% for step in steps %}
+    <div class="step-item
+        {%- if step.index < current %} done
+        {%- elif step.index == current %} active
+        {%- endif %}">
+        <div class="step-dot
+            {%- if step.index < current %} done
+            {%- elif step.index == current %} active
+            {%- endif %}">
+            {% if step.index < current %}✓{% else %}{{ step.index }}{% endif %}
+        </div>
+        <span class="step-label">{{ step.label }}</span>
+    </div>
+    {% if not loop.last %}
+    <div class="step-connector"></div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endmacro %}

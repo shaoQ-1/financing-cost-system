@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  financial-analysis:
+    build: .
+    ports:
+      - "5120:5120"
+    volumes:
+      - ./sessions:/app/sessions
+      - ./uploads:/app/uploads
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

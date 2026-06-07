@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}首页 — 穿透式融资成本核算系统{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="animate-in">穿透式融资成本核算系统</h1>
+    <p class="subtitle animate-in animate-in-d1">
+        从审计报告与金融负债明细表出发，自动化执行五步勾稽法，<br class="d-none d-md-inline">
+        还原企业真实融资成本
+    </p>
+</div>
+
+<div class="grid-2 mt-lg">
+    <div class="card card-gold animate-in animate-in-d2" style="cursor:pointer" onclick="window.location='/task-b'">
+        <div class="card-body" style="padding:var(--space-2xl)">
+            <div style="display:flex;align-items:center;gap:var(--space-md);margin-bottom:var(--space-lg)">
+                <span style="font-size:2rem;color:var(--accent)">▣</span>
+                <div>
+                    <span class="tag tag-gold" style="margin-bottom:4px">推荐第一步</span>
+                    <h2 style="margin:0">三年财务分析</h2>
+                </div>
+            </div>
+            <p style="font-size:0.95rem;line-height:1.7">
+                上传连续三年审计报告 PDF，AI 自动提取三张报表全部科目，
+                计算 24 项核心财务指标，识别同比异动，输出完整 Excel 分析报告。
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-md);margin:var(--space-lg) 0">
+                <div class="stat-card" style="flex:1;min-width:100px">
+                    <div class="stat-number" style="font-size:1.3rem;color:var(--green)">24</div>
+                    <div class="stat-label">财务指标</div>
+                </div>
+                <div class="stat-card" style="flex:1;min-width:100px">
+                    <div class="stat-number" style="font-size:1.3rem;color:var(--green)">3 年</div>
+                    <div class="stat-label">审计报告</div>
+                </div>
+                <div class="stat-card" style="flex:1;min-width:100px">
+                    <div class="stat-number" style="font-size:1.3rem;color:var(--green)">AI</div>
+                    <div class="stat-label">自动提取</div>
+                </div>
+            </div>
+            <a href="/task-b" class="btn btn-primary" style="width:100%">
+                开始财务分析 →
+            </a>
+        </div>
+    </div>
+
+    <div class="card animate-in animate-in-d3" style="cursor:pointer" onclick="window.location='/task-a'">
+        <div class="card-body" style="padding:var(--space-2xl)">
+            <div style="display:flex;align-items:center;gap:var(--space-md);margin-bottom:var(--space-lg)">
+                <span style="font-size:2rem;color:var(--blue)">◈</span>
+                <div>
+                    <span class="tag tag-blue" style="margin-bottom:4px">需先完成财务分析</span>
+                    <h2 style="margin:0">融资成本测算</h2>
+                </div>
+            </div>
+            <p style="font-size:0.95rem;line-height:1.7">
+                上传金融负债明细表，配置银行/债券预估利率，
+                系统以四种口径测算融资成本，倒挤非标成本，生成可视化报告。
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-md);margin:var(--space-lg) 0">
+                <div class="stat-card" style="flex:1;min-width:100px">
+                    <div class="stat-number" style="font-size:1.3rem;color:var(--blue)">4</div>
+                    <div class="stat-label">成本口径</div>
+                </div>
+                <div class="stat-card" style="flex:1;min-width:100px">
+                    <div class="stat-number" style="font-size:1.3rem;color:var(--blue)">3</div>
+                    <div class="stat-label">种方法</div>
+                </div>
+                <div class="stat-card" style="flex:1;min-width:100px">
+                    <div class="stat-number" style="font-size:1.3rem;color:var(--blue)">📊</div>
+                    <div class="stat-label">图表报告</div>
+                </div>
+            </div>
+            <a href="/task-a" class="btn btn-secondary" style="width:100%">
+                进入成本测算 →
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Workflow diagram -->
+<div class="card animate-in animate-in-d4" style="margin-top:var(--space-2xl)">
+    <div class="card-body" style="padding:var(--space-xl) var(--space-2xl)">
+        <h3 style="text-align:center;margin-bottom:var(--space-xl)">标准工作流程</h3>
+        <div style="display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap">
+            <div style="text-align:center;padding:var(--space-md)">
+                <div style="width:48px;height:48px;border-radius:50%;background:var(--accent-subtle);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-sm);color:var(--accent);font-weight:700">B1</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);max-width:80px">上传 PDF</div>
+            </div>
+            <div style="width:40px;height:2px;background:var(--border-color);margin-bottom:28px"></div>
+            <div style="text-align:center;padding:var(--space-md)">
+                <div style="width:48px;height:48px;border-radius:50%;background:var(--accent-subtle);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-sm);color:var(--accent);font-weight:700">B2</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);max-width:80px">AI 提取</div>
+            </div>
+            <div style="width:40px;height:2px;background:var(--border-color);margin-bottom:28px"></div>
+            <div style="text-align:center;padding:var(--space-md)">
+                <div style="width:48px;height:48px;border-radius:50%;background:var(--accent-subtle);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-sm);color:var(--accent);font-weight:700">B3</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);max-width:80px">财务分析</div>
+            </div>
+            <div style="width:40px;height:2px;border-top:2px dashed var(--accent);margin-bottom:28px;opacity:0.5"></div>
+            <div style="text-align:center;padding:var(--space-md)">
+                <div style="width:48px;height:48px;border-radius:50%;background:rgba(59,130,246,0.1);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-sm);color:var(--blue);font-weight:700">A1</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);max-width:80px">明细表</div>
+            </div>
+            <div style="width:40px;height:2px;background:var(--border-color);margin-bottom:28px"></div>
+            <div style="text-align:center;padding:var(--space-md)">
+                <div style="width:48px;height:48px;border-radius:50%;background:rgba(59,130,246,0.1);border:2px solid var(--blue);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-sm);color:var(--blue);font-weight:700">A2</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);max-width:80px">成本测算</div>
+            </div>
+        </div>
+        <div style="text-align:center;margin-top:var(--space-md)">
+            <span class="tag tag-gold">Task B</span>
+            <span style="color:var(--text-muted);margin:0 var(--space-sm)">→</span>
+            <span class="tag tag-blue">Task A</span>
+            <p class="text-small text-muted" style="margin-top:var(--space-sm)">先完成三年财务分析，再利用结果进行融资成本测算</p>
+        </div>
+    </div>
+</div>
+
+<!-- Feature list -->
+<div class="grid-3 animate-in animate-in-d5" style="margin-top:var(--space-2xl);margin-bottom:var(--space-2xl)">
+    <div class="card">
+        <div class="card-body">
+            <div style="font-size:1.5rem;margin-bottom:var(--space-sm);color:var(--accent)">📄</div>
+            <h5>PDF 智能提取</h5>
+            <p class="text-small text-muted">
+                支持文本 PDF、扫描件 OCR、AI 视觉三种引擎自动降级，
+                最大兼容不同质量的审计报告。
+            </p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <div style="font-size:1.5rem;margin-bottom:var(--space-sm);color:var(--accent)">📐</div>
+            <h5>五步勾稽法</h5>
+            <p class="text-small text-muted">
+                独创五步勾稽逻辑剥离利息资本化影响，还原真实利息支出，
+                无需明细表即可评估企业融资成本。
+            </p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <div style="font-size:1.5rem;margin-bottom:var(--space-sm);color:var(--accent)">🛡</div>
+            <h5>防失真机制</h5>
+            <p class="text-small text-muted">
+                四种成本口径交叉验证，正算倒挤双重保险，
+                提供异动识别和风控评级，避免单一方法偏差。
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

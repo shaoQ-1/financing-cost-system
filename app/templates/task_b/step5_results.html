@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_steps %}
+{% block title %}分析报告 — 穿透式融资成本核算系统{% endblock %}
+
+{% block content %}
+{% set steps = [
+    {'index': 1, 'label': '上传文件'},
+    {'index': 2, 'label': '选择页面'},
+    {'index': 3, 'label': 'AI 修正'},
+    {'index': 4, 'label': '预览确认'},
+    {'index': 5, 'label': '分析报告'}
+] %}
+{{ render_steps(steps, 5) }}
+
+<div class="page-header" style="padding-top:0;margin-bottom:var(--space-xl)">
+    <h2>三年财务分析报告</h2>
+    <p class="subtitle">资产负债表 · 利润表 · 现金流量表 · 核心指标 · 异动分析</p>
+</div>
+
+<div class="flex gap-sm mb-lg" style="flex-wrap:wrap">
+    <a href="/api/session/{{ sid }}/download/OCR财务分析报告.txt" class="btn btn-primary btn-sm">📄 下载 OCR 报告</a>
+    <a href="/api/session/{{ sid }}/download/财务分析结果.xlsx" class="btn btn-success btn-sm">📊 下载 Excel 报告（全科目总表+指标）</a>
+    <a href="/task-b" class="btn btn-ghost btn-sm">← 重新分析</a>
+</div>
+
+<!-- ============================================ -->
+<!-- 资产负债表 -->
+<!-- ============================================ -->
+{% if full_subjects and full_subjects.get(years[0], {}).get("资产负债表", []) | length > 0 %}
+<div class="card card-gold mb-lg animate-in">
+    <div class="card-header">
+        <div class="flex items-center gap-sm"><span>📋 资产负债表</span><span class="tag tag-green">单位：元</span></div>
+    </div>
+    <div class="card-body" style="padding:var(--space-md)">
+        <div class="table-container" style="max-height:520px;overflow-y:auto">
+            <table>
+                <thead><tr><th style="width:34%;position:sticky;top:0;z-index:2">项目名称</th>{% for year in years %}<th style="width:22%;position:sticky;top:0;z-index:2">{{ year }} 年</th>{% endfor %}</tr></thead>
+                <tbody>
+                    {% set ns = namespace(items=[], seen=[]) %}
+                    {% for year in years %}{% for item in full_subjects.get(year, {}).get("资产负债表", []) %}{% set nm = item.get("科目", "") %}{% if nm and nm not in ns.seen %}{% set ns.seen = ns.seen + [nm] %}{% set ns.items = ns.items + [item] %}{% endif %}{% endfor %}{% endfor %}
+                    {% for item in ns.items %}
+                    {% set nm = item.get("科目", "") %}
+                    {% set is_total = '合计' in nm or '总计' in nm %}
+                    {% set is_section = nm.endswith('：') or nm.endswith(':') or nm in ('流动资产','非流动资产','流动负债','非流动负债') or '权益' in nm %}
+                    <tr>
+                        <td style="font-weight:{{ '700' if is_total else '500' if is_section else '400' }};color:{{ 'var(--accent)' if is_total else 'var(--text-muted)' if is_section else 'var(--text-primary)' }}">{{ nm }}</td>
+                        {% for year in years %}
+                        {% set vals = full_subjects.get(year, {}).get("资产负债表", []) | selectattr("科目", "equalto", nm) | list %}
+                        {% if vals | length > 0 %}
+                            {% set v = vals[0].get("期末") if vals[0].get("期末") is not none else vals[0].get("期初") %}
+                            <td style="font-weight:{{ '600' if is_total else '400' }};text-align:right;color:var(--text-secondary)">
+                                {% if v is not none and v != '—' and v != '' %}{% if v is number %}{{ '{:,.2f}'.format(v) }}{% else %}{{ v }}{% endif %}{% else %}—{% endif %}
+                            </td>
+                        {% else %}<td style="text-align:right;color:var(--text-muted)">—</td>{% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ============================================ -->
+<!-- 利润表 -->
+<!-- ============================================ -->
+{% set _has = namespace(ok=false) %}{% for year in years %}{% if full_subjects.get(year, {}).get("利润表", []) | length > 0 %}{% set _has.ok = true %}{% endif %}{% endfor %}
+{% if _has.ok %}
+<div class="card mb-lg animate-in animate-in-d1">
+    <div class="card-header">
+        <div class="flex items-center gap-sm"><span>📈 利润表</span><span class="tag tag-blue">单位：元</span></div>
+    </div>
+    <div class="card-body" style="padding:var(--space-md)">
+        <div class="table-container" style="max-height:400px;overflow-y:auto">
+            <table>
+                <thead><tr><th style="width:34%;position:sticky;top:0;z-index:2">项目名称</th>{% for year in years %}<th style="width:22%;position:sticky;top:0;z-index:2">{{ year }} 年</th>{% endfor %}</tr></thead>
+                <tbody>
+                    {% set ns = namespace(items=[], seen=[]) %}
+                    {% for year in years %}{% for item in full_subjects.get(year, {}).get("利润表", []) %}{% set nm = item.get("科目", "") %}{% if nm and nm not in ns.seen %}{% set ns.seen = ns.seen + [nm] %}{% set ns.items = ns.items + [item] %}{% endif %}{% endfor %}{% endfor %}
+                    {% for item in ns.items %}
+                    {% set nm = item.get("科目", "") %}{% set is_total = '合计' in nm or '总额' in nm %}
+                    <tr>
+                        <td style="font-weight:{{ '600' if is_total else '400' }};color:{{ 'var(--accent)' if is_total else 'var(--text-primary)' }}">{{ nm }}</td>
+                        {% for year in years %}
+                        {% set vals = full_subjects.get(year, {}).get("利润表", []) | selectattr("科目", "equalto", nm) | list %}
+                        {% if vals | length > 0 %}
+                            {% set v = vals[0].get("本期") if vals[0].get("本期") is not none else vals[0].get("上期") %}
+                            <td style="text-align:right;color:var(--text-secondary)">
+                                {% if v is not none and v != '—' and v != '' %}{% if v is number %}{{ '{:,.2f}'.format(v) }}{% else %}{{ v }}{% endif %}{% else %}—{% endif %}
+                            </td>
+                        {% else %}<td style="text-align:right;color:var(--text-muted)">—</td>{% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ============================================ -->
+<!-- 现金流量表 -->
+<!-- ============================================ -->
+{% set _has_cf = namespace(ok=false) %}{% for year in years %}{% if full_subjects.get(year, {}).get("现金流量表", []) | length > 0 %}{% set _has_cf.ok = true %}{% endif %}{% endfor %}
+{% if _has_cf.ok %}
+<div class="card mb-lg animate-in animate-in-d2">
+    <div class="card-header">
+        <div class="flex items-center gap-sm"><span>💰 现金流量表</span><span class="tag" style="background:rgba(245,158,11,0.08);color:#fcd34d;border:1px solid rgba(245,158,11,0.2)">单位：元</span></div>
+    </div>
+    <div class="card-body" style="padding:var(--space-md)">
+        <div class="table-container" style="max-height:400px;overflow-y:auto">
+            <table>
+                <thead><tr><th style="width:34%;position:sticky;top:0;z-index:2">项目名称</th>{% for year in years %}<th style="width:22%;position:sticky;top:0;z-index:2">{{ year }} 年</th>{% endfor %}</tr></thead>
+                <tbody>
+                    {% set ns = namespace(items=[], seen=[]) %}
+                    {% for year in years %}{% for item in full_subjects.get(year, {}).get("现金流量表", []) %}{% set nm = item.get("科目", "") %}{% if nm and nm not in ns.seen %}{% set ns.seen = ns.seen + [nm] %}{% set ns.items = ns.items + [item] %}{% endif %}{% endfor %}{% endfor %}
+                    {% for item in ns.items %}
+                    {% set nm = item.get("科目", "") %}{% set is_total = '合计' in nm or '净额' in nm or '小计' in nm %}
+                    <tr>
+                        <td style="font-weight:{{ '600' if is_total else '400' }};color:{{ 'var(--accent)' if is_total else 'var(--text-primary)' }}">{{ nm }}</td>
+                        {% for year in years %}
+                        {% set vals = full_subjects.get(year, {}).get("现金流量表", []) | selectattr("科目", "equalto", nm) | list %}
+                        {% if vals | length > 0 %}
+                            {% set v = vals[0].get("本期") if vals[0].get("本期") is not none else vals[0].get("上期") %}
+                            <td style="text-align:right;color:var(--text-secondary)">
+                                {% if v is not none and v != '—' and v != '' %}{% if v is number %}{{ '{:,.2f}'.format(v) }}{% else %}{{ v }}{% endif %}{% else %}—{% endif %}
+                            </td>
+                        {% else %}<td style="text-align:right;color:var(--text-muted)">—</td>{% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ============================================ -->
+<!-- 财务指标 -->
+<!-- ============================================ -->
+{% if indicators %}
+<div class="card mb-lg animate-in animate-in-d3">
+    <div class="card-header">
+        <div class="flex items-center gap-sm"><span>📊 财务指标</span><span class="tag tag-gold">16 项</span></div>
+    </div>
+    <div class="card-body" style="padding:var(--space-md)">
+        <div class="table-container">
+            <table>
+                <thead><tr><th style="width:34%">指标名称</th>{% for ind in indicators %}<th style="width:22%">{{ ind['年份'] }}</th>{% endfor %}</tr></thead>
+                <tbody>
+                    {% set ind_keys = [
+                        '毛利率','净利率','营业利润率','ROE (净资产收益率)','ROA (总资产净利率)',
+                        '应收账款周转率（次）','存货周转率（次）','流动资产周转率（次）','总资产周转率（次）',
+                        '资产负债率','流动比率','速动比率','已获利息倍数'
+                    ] %}
+                    {% for k in ind_keys %}<tr><td style="font-weight:500">{{ k }}</td>{% for ind in indicators %}<td>{{ ind.get(k, '—') }}</td>{% endfor %}</tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ============================================ -->
+<!-- 异动科目 -->
+<!-- ============================================ -->
+{% if anomalies and anomalies|length > 0 %}
+<div class="card mb-lg animate-in animate-in-d4">
+    <div class="card-header" style="color:var(--orange)">
+        <div class="flex items-center gap-sm"><span>✅ 异动复查</span><span class="tag tag-green">已在预览步骤确认</span></div>
+    </div>
+    <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-md)">
+            {% for subj, changes in anomalies.items() %}
+            <div style="background:var(--bg-elevated);border-radius:var(--radius-md);padding:var(--space-md);border:1px solid var(--border-color)">
+                <div style="font-weight:600;margin-bottom:var(--space-sm)">{{ subj }}</div>
+                {% for year, chg in changes %}
+                <div class="flex items-center gap-sm" style="font-size:0.85rem">
+                    <span class="text-muted">{{ year }}年</span>
+                    <span style="color:{% if chg is not none and chg > 0 %}{{ '#ef4444' }}{% else %}{{ '#10b981' }}{% endif %};font-weight:600">
+                        {% if chg is not none %}{{ '↑' if chg > 0 else '↓' }}{{ '%.1f' % (chg|string|float if chg is string else chg)|abs }}%{% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card mb-lg" style="border-color:rgba(16,185,129,0.3)">
+    <div class="card-body" style="text-align:center;padding:var(--space-2xl)">
+        <div style="font-size:3rem;margin-bottom:var(--space-md)">✅</div>
+        <h4 style="color:var(--green)">未发现异动科目</h4>
+        <p class="text-muted">所有科目同比变动均未超过 30%</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Next step -->
+<div class="card animate-in animate-in-d5" style="margin-bottom:var(--space-2xl)">
+    <div class="card-body" style="padding:var(--space-xl);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-lg)">
+        <div>
+            <h4 style="margin:0">下一步：融资成本测算</h4>
+            <p class="text-small text-muted" style="margin:var(--space-sm) 0 0">上传金融负债明细表，测算企业真实融资成本（含不依赖明细表的邦得法）</p>
+        </div>
+        <a href="/task-a" class="btn btn-primary btn-lg">进入成本测算 →</a>
+    </div>
+</div>
+{% endblock %}

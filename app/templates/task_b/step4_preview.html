@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_steps %}
+{% block title %}预览确认 — 穿透式融资成本核算系统{% endblock %}
+
+{% block content %}
+{% set steps = [
+    {'index': 1, 'label': '上传文件'},
+    {'index': 2, 'label': '选择页面'},
+    {'index': 3, 'label': 'AI 修正'},
+    {'index': 4, 'label': '预览确认'},
+    {'index': 5, 'label': '分析报告'}
+] %}
+{{ render_steps(steps, 4) }}
+
+<div class="page-header" style="padding-top:0;margin-bottom:var(--space-xl)">
+    <h2>数据确认与异动分析</h2>
+    <p class="subtitle">核对修正后的数据，查看同比异动科目，确认无误后生成最终报告</p>
+</div>
+
+<!-- 异动科目 -->
+{% if anomalies and anomalies|length > 0 %}
+<div class="card mb-lg animate-in">
+    <div class="card-header" style="color:var(--orange)">
+        <div class="flex items-center gap-sm">
+            <span>⚠️ 同比异动科目</span>
+            <span class="tag tag-red">变动 &gt; 30%</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:var(--space-md)">
+            {% for subj, changes in anomalies.items() %}
+            <div style="background:var(--bg-elevated);border-radius:var(--radius-md);padding:var(--space-md);border:1px solid var(--border-color)">
+                <div style="font-weight:600;margin-bottom:var(--space-sm)">{{ subj }}</div>
+                {% for year, chg in changes %}
+                <div class="flex items-center gap-sm" style="font-size:0.85rem">
+                    <span class="text-muted">{{ year }}年</span>
+                    <span style="color:{% if chg is not none and chg > 0 %}{{ '#ef4444' }}{% else %}{{ '#10b981' }}{% endif %};font-weight:600">
+                        {% if chg is not none %}{{ '↑' if chg > 0 else '↓' }}{{ '%.1f' % (chg|string|float if chg is string else chg)|abs }}%{% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card mb-lg" style="border-color:rgba(16,185,129,0.3)">
+    <div class="card-body" style="text-align:center;padding:var(--space-xl)">
+        <div style="font-size:2.5rem;margin-bottom:var(--space-md)">✅</div>
+        <h4 style="color:var(--green);margin:0">未发现明显异动</h4>
+        <p class="text-muted text-small">所有科目同比变动均未超过 30%</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- 三表预览（只读） -->
+<div class="card mb-lg animate-in animate-in-d1">
+    <div class="card-header">
+        <span>📋 数据总览</span>
+        <span class="tag tag-green">只读摘要</span>
+    </div>
+    <div class="card-body" style="padding:var(--space-md)">
+        <div class="grid-3" style="gap:var(--space-md)">
+            {% for year in years %}
+            {% set yd = data.get(year, {}) %}
+            {% set mk = yd.get('mapped_keys', {}) %}
+            <div class="stat-card" style="text-align:left">
+                <div class="stat-number" style="font-size:1.2rem;color:var(--accent);margin-bottom:var(--space-sm)">{{ year }} 年</div>
+                <div class="text-small text-muted">
+                    提取引擎: {{ yd.get('_engine', '—') }}<br>
+                    科目数: {{ mk|length }}<br>
+                    {% if mk.get('营业收入') is not none %}
+                    营收: {{ '{:,.2f}'.format(mk.get('营业收入')) }} 元<br>
+                    {% endif %}
+                    {% if mk.get('资产总计') is not none %}
+                    总资产: {{ '{:,.2f}'.format(mk.get('资产总计')) }} 元
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="flex justify-between items-center mb-xl animate-in animate-in-d2">
+    <a href="/task-b/corrections/{{ sid }}" class="btn btn-ghost">← 返回修正</a>
+    <button type="button" class="btn btn-success btn-lg" onclick="runFinalAnalysis()">
+        确认数据无误，执行完整分析 →
+    </button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function runFinalAnalysis() {
+    var btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '正在分析...';
+    var sid = '{{ sid }}';
+    fetch('/api/task-b/confirm', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ session_id: sid })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.redirect) window.location.href = data.redirect;
+        else { alert('操作失败: ' + JSON.stringify(data)); btn.disabled = false; btn.innerHTML = '确认数据无误，执行完整分析 →'; }
+    })
+    .catch(function(e) { alert('网络错误: ' + e); btn.disabled = false; btn.innerHTML = '确认数据无误，执行完整分析 →'; });
+}
+</script>
+{% endblock %}

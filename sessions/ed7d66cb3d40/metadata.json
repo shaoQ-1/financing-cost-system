@@ -1,0 +1,325 @@
+{
+  "session_id": "ed7d66cb3d40",
+  "current_step": "b_results",
+  "task_type": null,
+  "created_at": "2026-06-08T02:08:37.158644",
+  "updated_at": "2026-06-08T02:09:44.431402",
+  "deepseek_api_key": "sk-d7e8b2cfe0db4edcba54bba7bced70cc",
+  "bank_rate": 3.0,
+  "bond_rate": 5.0,
+  "files": {
+    "2022": "C:\\Users\\90577\\Desktop\\MyProjects\\app\\..\\sessions\\ed7d66cb3d40\\uploads\\2022_ed7d66cb3d40_file_2022.pdf",
+    "2023": "C:\\Users\\90577\\Desktop\\MyProjects\\app\\..\\sessions\\ed7d66cb3d40\\uploads\\2023_ed7d66cb3d40_file_2023.pdf",
+    "2024": "C:\\Users\\90577\\Desktop\\MyProjects\\app\\..\\sessions\\ed7d66cb3d40\\uploads\\2024_ed7d66cb3d40_file_2024.pdf"
+  },
+  "page_selection": {
+    "2022": {
+      "balance_sheet": [
+        5,
+        6
+      ],
+      "income_stmt": [
+        7
+      ],
+      "cash_flow": [
+        8
+      ]
+    },
+    "2023": {
+      "balance_sheet": [
+        5,
+        6
+      ],
+      "income_stmt": [
+        7
+      ],
+      "cash_flow": [
+        8
+      ]
+    },
+    "2024": {
+      "balance_sheet": [
+        5,
+        6
+      ],
+      "income_stmt": [
+        7
+      ],
+      "cash_flow": [
+        8
+      ]
+    }
+  },
+  "deepseek_raw": null,
+  "fin_data": {
+    "2022": {
+      "营业收入": null,
+      "营业成本": null,
+      "净利润": null,
+      "资产总计": null,
+      "负债合计": null,
+      "所有者权益合计": null,
+      "短期借款": null,
+      "长期借款": null,
+      "应付债券": null,
+      "流动资产合计": null,
+      "流动负债合计": null,
+      "存货": null,
+      "应收账款": null,
+      "营业利润": null,
+      "利润总额": null,
+      "所得税费用": null,
+      "归母净利润": null
+    },
+    "2023": {
+      "营业收入": null,
+      "营业成本": null,
+      "净利润": null,
+      "资产总计": null,
+      "负债合计": null,
+      "所有者权益合计": null,
+      "短期借款": null,
+      "长期借款": null,
+      "应付债券": null,
+      "流动资产合计": null,
+      "流动负债合计": null,
+      "存货": null,
+      "应收账款": null,
+      "营业利润": null,
+      "利润总额": null,
+      "所得税费用": null,
+      "归母净利润": null
+    },
+    "2024": {
+      "营业收入": null,
+      "营业成本": null,
+      "净利润": null,
+      "资产总计": null,
+      "负债合计": null,
+      "所有者权益合计": null,
+      "短期借款": null,
+      "长期借款": null,
+      "应付债券": null,
+      "流动资产合计": null,
+      "流动负债合计": null,
+      "存货": null,
+      "应收账款": null,
+      "营业利润": null,
+      "利润总额": null,
+      "所得税费用": null,
+      "归母净利润": null
+    }
+  },
+  "deepseek_task_b_raw": {
+    "2022": {
+      "三表全科目": {
+        "资产负债表": [],
+        "利润表": [],
+        "现金流量表": []
+      },
+      "mapped_keys": {
+        "营业收入": null,
+        "营业成本": null,
+        "净利润": null,
+        "资产总计": null,
+        "负债合计": null,
+        "所有者权益合计": null,
+        "短期借款": null,
+        "长期借款": null,
+        "应付债券": null,
+        "流动资产合计": null,
+        "流动负债合计": null,
+        "存货": null,
+        "应收账款": null,
+        "营业利润": null,
+        "利润总额": null,
+        "所得税费用": null,
+        "归母净利润": null
+      },
+      "_engine": "vision_ai",
+      "_coverage": 1.0
+    },
+    "2023": {
+      "三表全科目": {
+        "资产负债表": [],
+        "利润表": [],
+        "现金流量表": []
+      },
+      "mapped_keys": {
+        "营业收入": null,
+        "营业成本": null,
+        "净利润": null,
+        "资产总计": null,
+        "负债合计": null,
+        "所有者权益合计": null,
+        "短期借款": null,
+        "长期借款": null,
+        "应付债券": null,
+        "流动资产合计": null,
+        "流动负债合计": null,
+        "存货": null,
+        "应收账款": null,
+        "营业利润": null,
+        "利润总额": null,
+        "所得税费用": null,
+        "归母净利润": null
+      },
+      "_engine": "vision_ai",
+      "_coverage": 1.0
+    },
+    "2024": {
+      "三表全科目": {
+        "资产负债表": [],
+        "利润表": [],
+        "现金流量表": []
+      },
+      "mapped_keys": {
+        "营业收入": null,
+        "营业成本": null,
+        "净利润": null,
+        "资产总计": null,
+        "负债合计": null,
+        "所有者权益合计": null,
+        "短期借款": null,
+        "长期借款": null,
+        "应付债券": null,
+        "流动资产合计": null,
+        "流动负债合计": null,
+        "存货": null,
+        "应收账款": null,
+        "营业利润": null,
+        "利润总额": null,
+        "所得税费用": null,
+        "归母净利润": null
+      },
+      "_engine": "vision_ai",
+      "_coverage": 1.0
+    }
+  },
+  "task_b_results": {
+    "indicators": [
+      {
+        "年份": "2022",
+        "毛利率": "N/A",
+        "净利率": "N/A",
+        "营业利润率": "N/A",
+        "ROE (净资产收益率)": "N/A",
+        "ROA (总资产净利率)": "N/A",
+        "资产负债率": "N/A",
+        "已获利息倍数": "N/A"
+      },
+      {
+        "年份": "2023",
+        "毛利率": "N/A",
+        "净利率": "N/A",
+        "营业利润率": "N/A",
+        "ROE (净资产收益率)": "N/A",
+        "ROA (总资产净利率)": "N/A",
+        "资产负债率": "N/A",
+        "已获利息倍数": "N/A"
+      },
+      {
+        "年份": "2024",
+        "毛利率": "N/A",
+        "净利率": "N/A",
+        "营业利润率": "N/A",
+        "ROE (净资产收益率)": "N/A",
+        "ROA (总资产净利率)": "N/A",
+        "资产负债率": "N/A",
+        "已获利息倍数": "N/A"
+      }
+    ],
+    "anomalies": {},
+    "corrections": [],
+    "excel_path": "C:\\Users\\90577\\Desktop\\MyProjects\\app\\..\\sessions\\ed7d66cb3d40\\outputs\\财务分析结果.xlsx",
+    "ocr_path": "C:\\Users\\90577\\Desktop\\MyProjects\\app\\..\\sessions\\ed7d66cb3d40\\outputs\\OCR财务分析报告.txt",
+    "full_subjects": {
+      "2022": {
+        "资产负债表": [],
+        "利润表": [],
+        "现金流量表": []
+      },
+      "2023": {
+        "资产负债表": [],
+        "利润表": [],
+        "现金流量表": []
+      },
+      "2024": {
+        "资产负债表": [],
+        "利润表": [],
+        "现金流量表": []
+      }
+    },
+    "fin_data": {
+      "2022": {
+        "营业收入": null,
+        "营业成本": null,
+        "净利润": null,
+        "资产总计": null,
+        "负债合计": null,
+        "所有者权益合计": null,
+        "短期借款": null,
+        "长期借款": null,
+        "应付债券": null,
+        "流动资产合计": null,
+        "流动负债合计": null,
+        "存货": null,
+        "应收账款": null,
+        "营业利润": null,
+        "利润总额": null,
+        "所得税费用": null,
+        "归母净利润": null
+      },
+      "2023": {
+        "营业收入": null,
+        "营业成本": null,
+        "净利润": null,
+        "资产总计": null,
+        "负债合计": null,
+        "所有者权益合计": null,
+        "短期借款": null,
+        "长期借款": null,
+        "应付债券": null,
+        "流动资产合计": null,
+        "流动负债合计": null,
+        "存货": null,
+        "应收账款": null,
+        "营业利润": null,
+        "利润总额": null,
+        "所得税费用": null,
+        "归母净利润": null
+      },
+      "2024": {
+        "营业收入": null,
+        "营业成本": null,
+        "净利润": null,
+        "资产总计": null,
+        "负债合计": null,
+        "所有者权益合计": null,
+        "短期借款": null,
+        "长期借款": null,
+        "应付债券": null,
+        "流动资产合计": null,
+        "流动负债合计": null,
+        "存货": null,
+        "应收账款": null,
+        "营业利润": null,
+        "利润总额": null,
+        "所得税费用": null,
+        "归母净利润": null
+      }
+    }
+  },
+  "task_a_results": null,
+  "extract_mode": "ai",
+  "validation_report": {
+    "issues": [],
+    "summary": {
+      "total": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "has_issues": false
+  }
+}

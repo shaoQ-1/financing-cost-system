@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}穿透式融资成本核算系统{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/treasury.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<div class="page-wrapper">
+    <nav class="nav-bar">
+        <div class="nav-inner">
+            <a href="/" class="nav-brand">
+                <span class="brand-icon">◈</span>
+                穿透式融资成本核算系统
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="{% if request.path == '/' %}active{% endif %}">首页</a></li>
+                <li><a href="/task-b" class="{% if request.path.startswith('/task-b') %}active{% endif %}">财务分析</a></li>
+                <li><a href="/task-a" class="{% if request.path.startswith('/task-a') %}active{% endif %}">成本测算</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="footer">
+        穿透式融资成本核算系统 v3.0 &nbsp;·&nbsp; 运行在端口 5120
+    </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.10/dist/htmx.min.js"></script>
+<script src="{{ url_for('static', filename='js/treasury.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

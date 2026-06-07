@@ -1,0 +1,19 @@
+flask>=3.0.0
+PyMuPDF>=1.23.0
+openai>=1.0.0
+pandas>=1.5.0
+openpyxl>=3.0.0
+xlsxwriter>=3.0.0
+numpy>=1.21.0
+matplotlib>=3.5.0
+waitress>=2.1.0
+python-dotenv>=1.0.0
+pdfplumber>=0.7.0
+pdfminer.six>=20221105
+Pillow>=8.0.0
+pytesseract>=0.3.10
+
+# OCR（可选加速：安装后自动启用）
+# paddlepaddle               # CPU 版 PaddlePaddle
+# paddleocr>=2.7.0           # PaddleOCR
+

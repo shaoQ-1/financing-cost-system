@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_steps %}
+{% block title %}三年财务分析 — 穿透式融资成本核算系统{% endblock %}
+
+{% block content %}
+{% set steps = [
+    {'index': 1, 'label': '上传文件'},
+    {'index': 2, 'label': '选择页面'},
+    {'index': 3, 'label': '数据校验'},
+    {'index': 4, 'label': '预览确认'},
+    {'index': 5, 'label': '分析报告'}
+] %}
+{{ render_steps(steps, 1) }}
+
+<div class="page-header" style="padding-top:0;margin-bottom:var(--space-xl)">
+    <h1>三年财务分析</h1>
+    <p class="subtitle">上传连续三年审计报告 PDF，或手动上传已整理的 Excel 财务数据表</p>
+</div>
+
+<div class="grid-2" style="gap:var(--space-2xl);max-width:900px;margin:0 auto">
+    <!-- PDF Upload Card -->
+    <div class="card card-gold">
+        <div class="card-body" style="padding:var(--space-xl)">
+            <div style="display:flex;align-items:center;gap:var(--space-md);margin-bottom:var(--space-lg)">
+                <span style="font-size:1.8rem;color:var(--accent)">📄</span>
+                <div>
+                    <h4 style="margin:0">PDF 上传</h4>
+                    <small class="text-muted">AI 智能提取三表数据</small>
+                </div>
+            </div>
+
+            <form id="uploadForm" action="/api/task-b/upload" method="POST" enctype="multipart/form-data">
+                <div class="form-group" style="border:2px dashed var(--border-color);border-radius:var(--radius-lg);padding:var(--space-xl);text-align:center;transition:all 0.3s"
+                     id="multi-dropzone">
+                    <label class="form-label" style="font-size:1.1rem;cursor:pointer;display:block;padding:var(--space-2xl) 0">
+                        <div style="font-size:3rem;margin-bottom:var(--space-md)">📂</div>
+                        <div style="font-weight:600;color:var(--accent);font-size:1.2rem">点击选择三年审计报告 PDF</div>
+                        <div class="text-small text-muted" style="margin-top:var(--space-sm)">支持一次全选三份文件，自动按年份排序</div>
+                    </label>
+                    <input type="file" name="pdfs" accept=".pdf" class="form-control" multiple required
+                           id="multiPdfInput" style="display:none"
+                           onchange="handleMultiPdfs(this)">
+                    <div id="multi-file-list" class="mt-md" style="text-align:left"></div>
+                </div>
+                <div id="upload-progress-wrap" style="display:none;margin-bottom:var(--space-md)">
+                    <div class="flex justify-between items-center mb-sm">
+                        <span style="font-size:0.85rem;color:var(--text-muted)" id="upload-status">正在上传...</span>
+                        <span style="font-size:0.8rem;color:var(--accent)" id="upload-percent">0%</span>
+                    </div>
+                    <div style="height:4px;background:var(--bg-elevated);border-radius:2px;overflow:hidden">
+                        <div id="upload-bar" style="height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width 0.3s var(--ease-out-expo)"></div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="upload-btn" disabled>
+                    上传并选择页面 →
+                </button>
+            </form>
+            <div id="result" class="mt-md"></div>
+        </div>
+    </div>
+
+    <!-- Excel Upload Card -->
+    <div class="card">
+        <div class="card-body" style="padding:var(--space-xl)">
+            <div style="display:flex;align-items:center;gap:var(--space-md);margin-bottom:var(--space-lg)">
+                <span style="font-size:1.8rem;color:var(--blue)">📊</span>
+                <div>
+                    <h4 style="margin:0">手动 Excel 上传</h4>
+                    <small class="text-muted">可上传三年合并表，或各年度独立 Excel</small>
+                </div>
+            </div>
+
+            <form id="excelForm" action="/api/task-b/upload-excel" method="POST" enctype="multipart/form-data">
+                <div class="form-group" style="border:2px dashed var(--border-color);border-radius:var(--radius-lg);padding:var(--space-xl);text-align:center;transition:all 0.3s"
+                     id="excel-dropzone">
+                    <label class="form-label" style="font-size:1.1rem;cursor:pointer;display:block;padding:var(--space-2xl) 0">
+                        <div style="font-size:3rem;margin-bottom:var(--space-md)">📊</div>
+                        <div style="font-weight:600;color:var(--blue);font-size:1.2rem">点击选择三年 Excel 财务数据表</div>
+                        <div class="text-small text-muted" style="margin-top:var(--space-sm)">支持一次全选三份文件，按文件名中的年份自动识别</div>
+                    </label>
+                    <input type="file" name="excel_files" accept=".xlsx,.xls,.csv" class="form-control" multiple required
+                           id="multiExcelInput" style="display:none"
+                           onchange="handleMultiExcels(this)">
+                    <div id="multi-excel-list" class="mt-md" style="text-align:left"></div>
+                </div>
+                <div class="form-text text-small text-muted" style="margin-bottom:var(--space-md);text-align:center">
+                    每份文件第一列为科目名称，第二列为数值<br>
+                    文件名需包含年份（如 2022年财务数据.xlsx）
+                </div>
+                <button type="submit" class="btn btn-success btn-block" id="excel-upload-btn" disabled>
+                    上传并校验 →
+                </button>
+            </form>
+            <div id="excel-result" class="mt-md"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var selectedPdfs = [];
+
+function handleMultiPdfs(input) {
+    var list = document.getElementById('multi-file-list');
+    var files = Array.from(input.files || []);
+    if (files.length === 0) return;
+
+    if (files.length > 3) {
+        alert('最多选择 3 份文件（三年各一份），已自动取前 3 份');
+    }
+    files.sort(function(a, b) { return a.name.localeCompare(b.name, 'zh'); });
+    var picked = files.slice(0, 3);
+    selectedPdfs = picked;
+
+    document.querySelectorAll('input[name^="file_"]').forEach(function(e) { e.remove(); });
+    var form = document.getElementById('uploadForm');
+    picked.forEach(function(f, i) {
+        var container = new DataTransfer();
+        container.items.add(f);
+        var inp = document.createElement('input');
+        inp.type = 'file';
+        inp.name = 'file_' + i;
+        inp.style.display = 'none';
+        inp.files = container.files;
+        form.appendChild(inp);
+    });
+
+    var labels = ['最早年度', '中间年度', '最近年度'];
+    list.innerHTML = picked.map(function(f, i) {
+        var size = (f.size / 1024 / 1024).toFixed(1);
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg-elevated);border-radius:6px;margin-bottom:4px">' +
+            '<span><span class="tag tag-gold" style="margin-right:8px">第' + (i+1) + '年</span>' +
+            '<strong>' + f.name + '</strong> <span class="text-muted">(' + size + ' MB)</span></span>' +
+            '<span class="text-small text-muted">' + labels[i] + '</span></div>';
+    }).join('');
+    list.innerHTML += '<div class="text-small text-muted mt-sm" style="text-align:center">已按文件名排序，最早→最近</div>';
+    document.getElementById('upload-btn').disabled = false;
+}
+
+var selectedExcels = [];
+
+function handleMultiExcels(input) {
+    var list = document.getElementById('multi-excel-list');
+    var files = Array.from(input.files || []);
+    if (files.length === 0) return;
+
+    if (files.length > 3) {
+        alert('最多选择 3 份文件（三年各一份），已自动取前 3 份');
+    }
+    files.sort(function(a, b) { return a.name.localeCompare(b.name, 'zh'); });
+    var picked = files.slice(0, 3);
+    selectedExcels = picked;
+
+    document.querySelectorAll('input[name^="excel_"]').forEach(function(e) { e.remove(); });
+    var form = document.getElementById('excelForm');
+    picked.forEach(function(f, i) {
+        var container = new DataTransfer();
+        container.items.add(f);
+        var inp = document.createElement('input');
+        inp.type = 'file';
+        inp.name = 'excel_' + i;
+        inp.style.display = 'none';
+        inp.files = container.files;
+        form.appendChild(inp);
+    });
+
+    list.innerHTML = picked.map(function(f, i) {
+        var size = (f.size / 1024).toFixed(0);
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg-elevated);border-radius:6px;margin-bottom:4px">' +
+            '<span><span class="tag tag-blue" style="margin-right:8px">第' + (i+1) + '年</span>' +
+            '<strong>' + f.name + '</strong> <span class="text-muted">(' + size + ' KB)</span></span>' +
+            '<span class="text-small text-muted">自动识别年份</span></div>';
+    }).join('');
+    document.getElementById('excel-upload-btn').disabled = false;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('multi-dropzone').addEventListener('click', function(e) {
+        if (e.target.tagName !== 'INPUT') document.getElementById('multiPdfInput').click();
+    });
+    var excelDropzone = document.getElementById('excel-dropzone');
+    if (excelDropzone) {
+        excelDropzone.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'INPUT') document.getElementById('multiExcelInput').click();
+        });
+    }
+
+    var form = document.getElementById('uploadForm');
+    if (!form) return;
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (selectedPdfs.length < 2) { alert('请至少选择 2 份审计报告'); return; }
+
+        var btn = document.getElementById('upload-btn');
+        var bar = document.getElementById('upload-bar');
+        var wrap = document.getElementById('upload-progress-wrap');
+        var statusEl = document.getElementById('upload-status');
+        var percentEl = document.getElementById('upload-percent');
+
+        wrap.style.display = 'block';
+        bar.style.width = '0%';
+        percentEl.textContent = '0%';
+        statusEl.textContent = '正在连接...';
+        btn.disabled = true;
+        btn.textContent = '上传中...';
+
+        var xhr = new XMLHttpRequest();
+        var formData = new FormData(form);
+        xhr.upload.addEventListener('progress', function(evt) {
+            if (evt.lengthComputable) {
+                var pct = Math.round(evt.loaded / evt.total * 100);
+                bar.style.width = pct + '%';
+                percentEl.textContent = pct + '%';
+                statusEl.textContent = '正在上传...（' + (evt.loaded / 1024 / 1024).toFixed(1) + ' / ' + (evt.total / 1024 / 1024).toFixed(1) + ' MB）';
+            }
+        });
+        xhr.addEventListener('loadend', function() {
+            bar.style.width = '100%';
+            percentEl.textContent = '✅';
+            btn.disabled = false;
+            btn.textContent = '上传并选择页面 →';
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    var data = JSON.parse(xhr.responseText);
+                    if (data.redirect) { statusEl.textContent = '上传完成，跳转中...'; window.location.href = data.redirect; }
+                    if (data.error) statusEl.textContent = '上传失败: ' + data.error;
+                } catch(e) { statusEl.textContent = '服务器响应异常'; }
+            } else { statusEl.textContent = '上传失败 (HTTP ' + xhr.status + ')'; }
+        });
+        xhr.addEventListener('error', function() {
+            statusEl.textContent = '网络错误，请检查连接';
+            btn.disabled = false;
+            btn.textContent = '上传并选择页面 →';
+            bar.style.width = '0%';
+            percentEl.textContent = '❌';
+        });
+        xhr.open('POST', form.getAttribute('action'));
+        xhr.send(formData);
+    });
+
+    // Excel 表单提交（XHR，和 PDF 同理）
+    var excelForm = document.getElementById('excelForm');
+    if (excelForm) {
+        excelForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (selectedExcels.length < 2) { alert('请至少选择 2 份 Excel 文件'); return; }
+
+            var btn = document.getElementById('excel-upload-btn');
+            btn.disabled = true;
+            btn.textContent = '上传中...';
+
+            var xhr = new XMLHttpRequest();
+            var formData = new FormData(excelForm);
+            xhr.addEventListener('loadend', function() {
+                btn.disabled = false;
+                btn.textContent = '上传并校验 →';
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        if (data.redirect) { window.location.href = data.redirect; }
+                        else { alert('上传失败: ' + (data.error || JSON.stringify(data))); }
+                    } catch(e) { alert('服务器响应异常'); }
+                } else { alert('上传失败 (HTTP ' + xhr.status + ')'); }
+            });
+            xhr.addEventListener('error', function() { alert('网络错误'); btn.disabled = false; btn.textContent = '上传并校验 →'; });
+            xhr.open('POST', excelForm.getAttribute('action'));
+            xhr.send(formData);
+        });
+    }
+});
+
+function showSampleFormat() {
+    const sample = [
+        '科目名称\t2022\t2023\t2024',
+        '营业收入\t100000\t120000\t150000',
+        '营业成本\t80000\t95000\t110000',
+        '资产总计\t500000\t550000\t600000',
+        '...\t...\t...\t...'
+    ].join('\n');
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(7,11,20,0.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999';
+    overlay.innerHTML =
+        '<div style="background:#111827;border:1px solid rgba(148,163,184,0.12);border-radius:16px;padding:32px;max-width:540px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5)">' +
+        '<h4 style="margin-bottom:12px">Excel 示例格式</h4>' +
+        '<pre style="background:#070b14;padding:16px;border-radius:8px;font-size:0.8rem;color:#f1f5f9;overflow-x:auto;font-family:var(--font-mono);line-height:1.6">' + sample + '</pre>' +
+        '<p class="text-small text-muted" style="margin-top:12px">各年度独立文件时，每份用一列科目+一列数值即可，文件名需包含年份</p>' +
+        '<button class="btn btn-secondary btn-sm" onclick="this.closest(\'div\').parentElement.remove()" style="margin-top:8px">关闭</button></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+}
+</script>
+{% endblock %}

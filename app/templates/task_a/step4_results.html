@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_steps %}
+{% block title %}测算结果 — 穿透式融资成本核算系统{% endblock %}
+
+{% block content %}
+{% set steps = [
+    {'index': 1, 'label': '上传明细表'},
+    {'index': 2, 'label': '配置利率'},
+    {'index': 3, 'label': '计算中'},
+    {'index': 4, 'label': '结果报告'}
+] %}
+{{ render_steps(steps, 4) }}
+
+<div class="page-header" style="padding-top:0;margin-bottom:var(--space-xl)">
+    <h2>融资成本测算结果</h2>
+    <p class="subtitle">四种口径交叉验证 · 债务结构分析 · 风控评级</p>
+</div>
+
+<!-- Cost comparison cards -->
+<div class="grid-2 mb-lg">
+    <!-- No-liability methods -->
+    <div class="card card-gold">
+        <div class="card-header">
+            <div class="flex items-center gap-sm">
+                <span>📋 不依赖明细表</span>
+                <span class="tag tag-gold">仅审计报告</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:var(--space-md)">
+                <div class="flex justify-between items-center" style="padding:var(--space-md);background:var(--bg-elevated);border-radius:var(--radius-md)">
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem">① 邦得法（五步勾稽）</div>
+                        <div class="text-small text-muted">还原真实利息 ÷ 平均有息负债</div>
+                    </div>
+                    <div style="font-size:1.8rem;font-weight:700;font-family:var(--font-heading);color:var(--accent)">
+                        {{ no_liab.get('邦得法（五步法真实利息）', '—') }}
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center" style="padding:var(--space-md);background:var(--bg-elevated);border-radius:var(--radius-md)">
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem">② 费用化利息法</div>
+                        <div class="text-small text-muted">利润表利息支出 / 平均有息负债</div>
+                    </div>
+                    <div style="font-size:1.3rem;font-weight:600;color:var(--text-primary)">
+                        {{ no_liab.get('费用化利息法（利润表利息支出）', '—') }}
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center" style="padding:var(--space-md);background:var(--bg-elevated);border-radius:var(--radius-md)">
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem">③ 真实利息支出</div>
+                        <div class="text-small text-muted">五步勾稽还原后的实际利息</div>
+                    </div>
+                    <div style="font-size:1.1rem;color:var(--text-secondary)">
+                        {{ no_liab.get('真实利息支出', '—') }} <small>元</small>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center" style="padding:var(--space-md);background:var(--bg-elevated);border-radius:var(--radius-md)">
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem">④ 平均有息负债</div>
+                        <div class="text-small text-muted">资产负债表期初期末均值</div>
+                    </div>
+                    <div style="font-size:1.1rem;color:var(--text-secondary)">
+                        {{ no_liab.get('资产负债表平均有息负债', '—') }} <small>元</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info" style="margin-top:var(--space-md)">
+                <strong>💡 邦得法说明</strong><br>
+                通过五步勾稽剥离利息资本化影响，还原真实利息支出除以平均有息负债，
+                无需明细表即可评估企业综合融资成本。
+            </div>
+        </div>
+    </div>
+
+    <!-- Liability-dependent methods -->
+    <div class="card">
+        <div class="card-header">
+            <div class="flex items-center gap-sm">
+                <span>📊 依赖明细表</span>
+                <span class="tag tag-blue">含分类</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:var(--space-md)">
+                <div class="flex justify-between items-center" style="padding:var(--space-md);background:var(--bg-elevated);border-radius:var(--radius-md)">
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem">⑤ 正算加权法</div>
+                        <div class="text-small text-muted">∑(各类余额×利率) / 总有息负债</div>
+                    </div>
+                    <div style="font-size:1.8rem;font-weight:700;font-family:var(--font-heading);color:var(--blue)">
+                        {{ no_liab.get('明细表正算法（银行+债券+非标）', '—') }}
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center" style="padding:var(--space-md);background:var(--bg-elevated);border-radius:var(--radius-md)">
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem">⑥ 极限倒挤非标成本</div>
+                        <div class="text-small text-muted">(真实利息 − 银行息 − 债券息) / 非标本金</div>
+                    </div>
+                    <div style="font-size:1.8rem;font-weight:700;font-family:var(--font-heading);color:var(--red)">
+                        {{ no_liab.get('极限倒挤非标法', '—') }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Risk rating -->
+            <h5 style="margin:var(--space-lg) 0 var(--space-md)">风控评级</h5>
+            {% set rating = results.get('风控评级', ('ℹ️ 信息不足', '')) %}
+            {% set rtype = 'danger' if '高危' in rating[0] else 'warning' if '合理' in rating[0] or '偏高' in rating[0] else 'info' %}
+            <div class="alert alert-{{ rtype }}">
+                <strong>{{ rating[0] }}</strong><br>
+                {{ rating[1] }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid-2 mb-lg">
+    <div class="chart-box">
+        <div class="chart-title">债务结构饼图</div>
+        <img src="/api/session/{{ sid }}/chart/债务结构饼图.png"
+             class="img-fluid" alt="债务结构饼图"
+             onerror="this.style.display='none'"
+             style="border-radius:var(--radius-sm);max-width:100%">
+    </div>
+    <div class="chart-box">
+        <div class="chart-title">季度到期分布</div>
+        <img src="/api/session/{{ sid }}/chart/季度到期余额柱状图.png"
+             class="img-fluid" alt="季度到期分布"
+             onerror="this.style.display='none'"
+             style="border-radius:var(--radius-sm);max-width:100%">
+    </div>
+</div>
+
+<!-- Download -->
+<div class="card mb-lg animate-in">
+    <div class="card-header">下载报告</div>
+    <div class="card-body">
+        <div class="flex gap-sm" style="flex-wrap:wrap">
+            <a href="/api/session/{{ sid }}/download/尽调推演计算书.txt" class="btn btn-primary btn-sm">
+                尽调推演计算书
+            </a>
+            <a href="/api/session/{{ sid }}/download/邦得综合融资成本报告.txt" class="btn btn-primary btn-sm">
+                邦得综合融资成本报告
+            </a>
+            <a href="/api/session/{{ sid }}/chart/债务结构饼图.png" class="btn btn-secondary btn-sm" download>
+                债务饼图
+            </a>
+            <a href="/api/session/{{ sid }}/chart/季度到期余额柱状图.png" class="btn btn-secondary btn-sm" download>
+                到期分布图
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation -->
+<div class="flex justify-between" style="margin-bottom:var(--space-2xl)">
+    <a href="/task-a" class="btn btn-ghost">← 重新上传明细表</a>
+    <a href="/" class="btn btn-ghost">返回首页</a>
+</div>
+{% endblock %}
